@@ -1,18 +1,18 @@
 #!/usr/bin/env node
 import { explain, formatResult } from './index.js';
 
-const USAGE = `explain-cron — explain a cron expression in plain English
+const USAGE = `cron-plain — explain a cron expression in plain English
 
 Usage:
-  explain-cron "<cron expression>" [--count N] [--tz <IANA-tz>]
-  explain-cron --pro
-  explain-cron --help
-  explain-cron --version
+  cron-plain "<cron expression>" [--count N] [--tz <IANA-tz>]
+  cron-plain --pro
+  cron-plain --help
+  cron-plain --version
 
 Examples:
-  explain-cron "*/5 * * * *"
-  explain-cron "0 9 * * 1-5"
-  explain-cron "0 0 1 * *" --tz America/Denver --count 10
+  cron-plain "*/5 * * * *"
+  cron-plain "0 9 * * 1-5"
+  cron-plain "0 0 1 * *" --tz America/Denver --count 10
 
 Options:
   -n, --count N     How many next run times to show (1-100, default 10)
@@ -26,7 +26,7 @@ Pro tier:  AWS EventBridge (6-field), GitHub Actions quirks, k8s CronJob
            syntax — get early access at https://builtbyzero.com
 `;
 
-const PRO_MESSAGE = `explain-cron Pro — coming soon
+const PRO_MESSAGE = `cron-plain Pro — coming soon
 
 The Pro tier explains the cron dialects that trip people up:
   • AWS EventBridge (6-field, with year + special day-of-week tokens)
@@ -92,7 +92,7 @@ export function main(argv) {
     return 0;
   }
   if (args.version) {
-    process.stdout.write(`explain-cron 0.1.0\n`);
+    process.stdout.write(`cron-plain 0.1.0\n`);
     return 0;
   }
   if (args.pro) {

@@ -1,4 +1,4 @@
-// explain-cron — explain cron expressions in plain English.
+// cron-plain — explain cron expressions in plain English.
 // Public API: explain(expression, options), formatResult(result, options).
 //
 // v0.1 supports standard 5-field cron (minute hour day-of-month month day-of-week)
@@ -32,7 +32,7 @@ function assertSupported(expr) {
   const fields = trimmed.split(/\s+/);
   if (fields.length !== 5) {
     throw new Error(
-      `explain-cron v0.1 supports standard 5-field cron (minute hour day-of-month month day-of-week). ` +
+      `cron-plain v0.1 supports standard 5-field cron (minute hour day-of-month month day-of-week). ` +
         `Got ${fields.length} fields: "${trimmed}". ` +
         `6-field (AWS EventBridge) and other dialects are coming in the Pro tier — see builtbyzero.com.`
     );
