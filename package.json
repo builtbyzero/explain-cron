@@ -1,5 +1,5 @@
 {
-  "name": "cron-explain",
+  "name": "explain-cron",
   "version": "0.1.0",
   "description": "Explain any cron expression in plain English and show the next 10 run times.",
   "keywords": [
@@ -18,17 +18,17 @@
   "homepage": "https://builtbyzero.com",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/builtbyzero/cron-explain.git"
+    "url": "git+https://github.com/builtbyzero/explain-cron.git"
   },
   "bugs": {
-    "url": "https://github.com/builtbyzero/cron-explain/issues"
+    "url": "https://github.com/builtbyzero/explain-cron/issues"
   },
   "type": "module",
   "engines": {
     "node": ">=18"
   },
   "bin": {
-    "cron-explain": "./src/cli.js"
+    "explain-cron": "./src/cli.js"
   },
   "main": "./src/index.js",
   "exports": {
