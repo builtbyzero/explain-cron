@@ -36,6 +36,17 @@ function assertThrows(fn, pattern, msg) {
   }
   throw new Error(`${msg || 'expected to throw'} but did not`);
 }
+async function asyncTest(name, fn) {
+  try {
+    await fn();
+    console.log(`  ok   ${name}`);
+    passed++;
+  } catch (err) {
+    console.log(`  FAIL ${name}`);
+    console.log(`       ${err.message}`);
+    failed++;
+  }
+}
 
 console.log('explain()');
 test('every-5-minutes', () => {
@@ -97,9 +108,10 @@ test('format-includes-expression-and-meaning', () => {
   assert(s.includes('Next 2 run times'), 'missing next-runs header');
 });
 
+(async () => {
 console.log('\ncli main()');
 
-function captureStdout(fn) {
+async function captureStdout(fn) {
   const orig = process.stdout.write.bind(process.stdout);
   const errOrig = process.stderr.write.bind(process.stderr);
   let out = '';
@@ -114,7 +126,7 @@ function captureStdout(fn) {
   };
   let code;
   try {
-    code = fn();
+    code = await fn();
   } finally {
     process.stdout.write = orig;
     process.stderr.write = errOrig;
@@ -122,43 +134,44 @@ function captureStdout(fn) {
   return { code, out, err };
 }
 
-test('cli-help', () => {
-  const { code, out } = captureStdout(() => main(['--help']));
+await asyncTest('cli-help', async () => {
+  const { code, out } = await captureStdout(() => main(['--help']));
   assertEqual(code, 0);
   assert(out.includes('Usage:'), 'help should include usage');
 });
 
-test('cli-version', () => {
-  const { code, out } = captureStdout(() => main(['--version']));
+await asyncTest('cli-version', async () => {
+  const { code, out } = await captureStdout(() => main(['--version']));
   assertEqual(code, 0);
-  assert(/0\.1\.0/.test(out), 'should print version');
+  assert(/0\.2\.0/.test(out), 'should print version');
 });
 
-test('cli-pro', () => {
-  const { code, out } = captureStdout(() => main(['--pro']));
+await asyncTest('cli-dialect-eventbridge', async () => {
+  const { code, out } = await captureStdout(() => main(['0 18 ? * MON-FRI *', '--dialect', 'eventbridge']));
   assertEqual(code, 0);
-  assert(/builtbyzero\.com/.test(out), 'pro message should link to builtbyzero.com');
-  assert(/coming soon/i.test(out), 'pro should say coming soon');
+  assert(out.includes('EventBridge'), 'should say EventBridge');
+  assert(out.includes('Docs:'), 'should include docs link');
 });
 
-test('cli-missing-expression', () => {
-  const { code, err } = captureStdout(() => main([]));
+await asyncTest('cli-missing-expression', async () => {
+  const { code, err } = await captureStdout(() => main([]));
   assertEqual(code, 2);
   assert(/missing cron expression/.test(err));
 });
 
-test('cli-runs-expression', () => {
-  const { code, out } = captureStdout(() => main(['*/5 * * * *', '--count', '3']));
+await asyncTest('cli-runs-expression', async () => {
+  const { code, out } = await captureStdout(() => main(['*/5 * * * *', '--count', '3']));
   assertEqual(code, 0);
   assert(out.includes('Expression: */5 * * * *'));
   assert(out.includes('Next 3 run times'));
 });
 
-test('cli-rejects-bad-count', () => {
-  const { code, err } = captureStdout(() => main(['*/5 * * * *', '--count', '999']));
+await asyncTest('cli-rejects-bad-count', async () => {
+  const { code, err } = await captureStdout(() => main(['*/5 * * * *', '--count', '999']));
   assertEqual(code, 2);
   assert(/count/i.test(err));
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);
+})();
