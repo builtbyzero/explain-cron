@@ -3,7 +3,7 @@
 > Explain any cron expression in plain English. Show the next 10 run times. Zero config.
 
 ```
-$ npx explain-cron "*/5 * * * *"
+$ npx @builtbyzero/explain-cron "*/5 * * * *"
 
 Expression: */5 * * * *
 Meaning:    Every 5 minutes
@@ -20,13 +20,13 @@ Next 10 run times (local time):
 Run it on the fly:
 
 ```bash
-npx explain-cron "0 9 * * 1-5"
+npx @builtbyzero/explain-cron "0 9 * * 1-5"
 ```
 
 Or install globally:
 
 ```bash
-npm install -g explain-cron
+npm install -g @builtbyzero/explain-cron
 explain-cron "@daily"
 ```
 
