@@ -35,11 +35,21 @@ Requires Node.js 18 or newer.
 ## Usage
 
 ```
-cron-plain "<cron expression>" [--count N] [--tz <IANA-tz>]
-cron-plain --pro
+cron-plain "<cron expression>" [--count N] [--tz <IANA-tz>] [--json] [--no-color]
+cron-plain "<expression>" --dialect <eventbridge|github|kubernetes>
 cron-plain --help
 cron-plain --version
 ```
+
+### Options
+
+- `--count N` — how many next runs to show (1–100, default 10)
+- `--tz TZ` — IANA timezone for the next-run schedule
+- `--dialect <name>` — Pro: explain dialect quirks (eventbridge, github, kubernetes)
+- `--json` — emit machine-readable JSON (no colors, no upsell)
+- `--no-color` — disable ANSI colors (also via `NO_COLOR=1` env var)
+
+Colors are auto-disabled when stdout is not a TTY.
 
 Examples:
 

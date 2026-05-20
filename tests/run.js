@@ -143,7 +143,7 @@ await asyncTest('cli-help', async () => {
 await asyncTest('cli-version', async () => {
   const { code, out } = await captureStdout(() => main(['--version']));
   assertEqual(code, 0);
-  assert(/0\.2\.0/.test(out), 'should print version');
+  assert(/0\.3\.0/.test(out), 'should print version');
 });
 
 await asyncTest('cli-dialect-eventbridge', async () => {
@@ -170,6 +170,49 @@ await asyncTest('cli-rejects-bad-count', async () => {
   const { code, err } = await captureStdout(() => main(['*/5 * * * *', '--count', '999']));
   assertEqual(code, 2);
   assert(/count/i.test(err));
+});
+
+
+console.log('\nformatting (v0.3.0)');
+{
+  const { formatTests } = await import('./format.test.js');
+  for (const [name, fn] of formatTests) {
+    test(name, fn);
+  }
+}
+
+console.log('\ncli --json / --no-color');
+
+await asyncTest('cli-json-mode', async () => {
+  const { code, out } = await captureStdout(() => main(['*/5 * * * *', '--json', '--count', '2']));
+  assertEqual(code, 0);
+  // No ANSI in JSON mode
+  assert(!/\x1b\[/.test(out), 'no ANSI in JSON mode');
+  const parsed = JSON.parse(out);
+  assertEqual(parsed.expression, '*/5 * * * *');
+  assertEqual(parsed.next_runs.length, 2);
+});
+
+await asyncTest('cli-no-color-flag', async () => {
+  const { code, out } = await captureStdout(() => main(['*/5 * * * *', '--no-color', '--count', '1']));
+  assertEqual(code, 0);
+  assert(!/\x1b\[/.test(out), 'no ANSI with --no-color');
+  assert(out.includes('Expression:'));
+});
+
+await asyncTest('cli-non-tty-default-no-color', async () => {
+  // captureStdout overrides write; stdout.isTTY is undefined → color off by default.
+  const { code, out } = await captureStdout(() => main(['*/5 * * * *', '--count', '1']));
+  assertEqual(code, 0);
+  assert(!/\x1b\[/.test(out), 'default no color when not TTY');
+});
+
+await asyncTest('cli-dialect-json', async () => {
+  const { code, out } = await captureStdout(() => main(['0 18 ? * MON-FRI *', '--dialect', 'eventbridge', '--json']));
+  assertEqual(code, 0);
+  assert(!/\x1b\[/.test(out), 'no ANSI');
+  const parsed = JSON.parse(out);
+  assertEqual(parsed.dialect, 'AWS EventBridge');
 });
 
 console.log(`\n${passed} passed, ${failed} failed`);

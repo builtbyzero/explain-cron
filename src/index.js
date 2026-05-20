@@ -1,14 +1,12 @@
 // cron-plain — explain cron expressions in plain English.
-// Public API: explain(expression, options), formatResult(result, options).
-//
-// v0.1 supports standard 5-field cron (minute hour day-of-month month day-of-week)
-// and a handful of @-aliases that cron-parser understands (@hourly, @daily, ...).
-//
-// Pro-tier syntaxes (AWS EventBridge 6-field, GitHub Actions quirks,
-// Kubernetes CronJob caveats) are not yet implemented — see --pro in cli.js.
+// Public API:
+//   explain(expression, options)       → result object
+//   formatResult(result, options)      → polished text block (optionally colored)
+//   formatJson(result, options)        → JSON string for --json mode
 
 import cronParser from 'cron-parser';
 import cronstrue from 'cronstrue';
+import { makeColors } from './format.js';
 
 const ALIASES = new Set([
   '@yearly',
@@ -81,14 +79,18 @@ export function explain(expression, options = {}) {
   return { expression: expression.trim(), description, nextRuns };
 }
 
-/** Format a result as a human-readable block of text. */
+/**
+ * Format a result as a human-readable block of text with optional ANSI color.
+ * Layout: labeled "Expression:" / "Meaning:" / "Next N run times" lines,
+ * indented run entries, dim index gutter, blank line separators.
+ *
+ * @param {{expression:string, description:string, nextRuns:Date[]}} result
+ * @param {{tz?:string, color?:boolean}} [options]
+ */
 export function formatResult(result, options = {}) {
   const { tz } = options;
-  const lines = [];
-  lines.push(`Expression: ${result.expression}`);
-  lines.push(`Meaning:    ${result.description}`);
-  lines.push('');
-  lines.push(`Next ${result.nextRuns.length} run times${tz ? ` (${tz})` : ' (local time)'}:`);
+  const c = makeColors(options);
+
   const fmt = new Intl.DateTimeFormat('en-US', {
     weekday: 'short',
     year: 'numeric',
@@ -100,8 +102,34 @@ export function formatResult(result, options = {}) {
     timeZone: tz,
     timeZoneName: 'short',
   });
+
+  // Labels are kept ("Expression:", "Meaning:", "Next N run times") so that
+  // existing scripts grepping the output keep working.
+  const label = (s) => c.boldCyan(s);
+  const lines = [];
+  lines.push(`${label('Expression:')} ${c.bold(result.expression)}`);
+  lines.push(`${label('Meaning:   ')} ${c.bold(result.description)}`);
+  lines.push('');
+  const tzLabel = tz ? `(${tz})` : '(local time)';
+  lines.push(`${label(`Next ${result.nextRuns.length} run times`)} ${c.dim(tzLabel)}`);
   for (const [i, d] of result.nextRuns.entries()) {
-    lines.push(`  ${String(i + 1).padStart(2, ' ')}. ${fmt.format(d)}`);
+    const idx = c.dim(String(i + 1).padStart(2, ' ') + '.');
+    lines.push(`  ${idx} ${fmt.format(d)}`);
   }
   return lines.join('\n');
+}
+
+/** JSON-stringifiable view of a result; ISO-format dates. */
+export function toJsonResult(result, options = {}) {
+  return {
+    expression: result.expression,
+    meaning: result.description,
+    timezone: options.tz ?? null,
+    next_runs: result.nextRuns.map((d) => d.toISOString()),
+  };
+}
+
+/** Serialize a result to JSON text. */
+export function formatJson(result, options = {}) {
+  return JSON.stringify(toJsonResult(result, options), null, 2);
 }

@@ -1,15 +1,17 @@
 #!/usr/bin/env node
 // cron-plain — explain any cron expression in plain English.
-// Usage: cron-plain "<expression>" [--dialect eventbridge|github|kubernetes] [--count N] [--tz TZ]
+// Usage: cron-plain "<expression>" [--dialect eventbridge|github|kubernetes] [--count N] [--tz TZ] [--json] [--no-color]
 
-import { explain, formatResult } from './index.js';
-import { explainPro, formatProResult, detectDialect } from './pro.js';
+import { explain, formatResult, formatJson } from './index.js';
+import { explainPro, formatProResult, formatProJson, detectDialect } from './pro.js';
+import { makeColors } from './format.js';
 
 const USAGE = `cron-plain — explain a cron expression in plain English
 
 Usage:
   cron-plain "<cron expression>" [--count N] [--tz <IANA-tz>]
   cron-plain "<expression>" --dialect <eventbridge|github|kubernetes>
+  cron-plain "<expression>" --json
   cron-plain --help
   cron-plain --version
 
@@ -25,6 +27,8 @@ Options:
   -n, --count N          How many next run times to show (1-100, default 10)
       --tz TZ            IANA timezone for next-run calculations
       --dialect <name>   Pro: explain dialect quirks (eventbridge, github, kubernetes)
+      --json             Emit machine-readable JSON (no colors, no upsell)
+      --no-color         Disable ANSI colors (also via NO_COLOR env var)
   -h, --help             Show this help
   -v, --version          Show version
 
@@ -34,7 +38,7 @@ Pro tier:  --dialect flag for AWS EventBridge, GitHub Actions, k8s CronJob quirk
 `;
 
 function parseArgs(argv) {
-  const out = { count: 10, help: false, version: false, dialect: null };
+  const out = { count: 10, help: false, version: false, dialect: null, json: false, noColor: false };
   const positional = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i];
@@ -46,6 +50,10 @@ function parseArgs(argv) {
       out.dialect = argv[++i];
     } else if (a?.startsWith('--dialect=')) {
       out.dialect = a.slice('--dialect='.length);
+    } else if (a === '--json') {
+      out.json = true;
+    } else if (a === '--no-color' || a === '--no-colour') {
+      out.noColor = true;
     } else if (a === '--count' || a === '-n') {
       const v = argv[++i];
       const n = Number.parseInt(v ?? '', 10);
@@ -87,12 +95,16 @@ async function main(argv) {
   }
 
   if (args.help) { process.stdout.write(USAGE); return 0; }
-  if (args.version) { process.stdout.write(`cron-plain 0.2.0\n`); return 0; }
+  if (args.version) { process.stdout.write(`cron-plain 0.3.0\n`); return 0; }
 
   if (!args.expression) {
     process.stderr.write(`error: missing cron expression\n\n${USAGE}`);
     return 2;
   }
+
+  // JSON mode forces colors off.
+  const colorOpts = { color: args.noColor || args.json ? false : undefined };
+  const c = makeColors(colorOpts);
 
   // Pro dialect path
   if (args.dialect) {
@@ -103,8 +115,12 @@ async function main(argv) {
     }
     try {
       const result = explainPro(args.expression, args.dialect);
-      process.stdout.write(formatProResult(result) + '\n');
-      process.stdout.write(`\nPro tier — $9 one-time → https://buy.stripe.com/dRm9AM8S29ZVcbL4k6d3i07\n`);
+      if (args.json) {
+        process.stdout.write(formatProJson(result) + '\n');
+      } else {
+        process.stdout.write(formatProResult(result, colorOpts) + '\n');
+        process.stdout.write('\n' + c.dimItalic(`Pro tier — $9 one-time → https://buy.stripe.com/dRm9AM8S29ZVcbL4k6d3i07`) + '\n');
+      }
       return 0;
     } catch (err) {
       process.stderr.write(`error: ${err.message}\n`);
@@ -114,18 +130,22 @@ async function main(argv) {
 
   // Auto-detect 6-field EventBridge
   const fieldCount = args.expression.trim().split(/\s+/).length;
-  if (fieldCount === 6) {
-    process.stdout.write(`Note: 6-field expression detected — this looks like AWS EventBridge syntax.\n`);
-    process.stdout.write(`Run with --dialect eventbridge for full analysis.\n\n`);
+  if (fieldCount === 6 && !args.json) {
+    process.stdout.write(c.yellow(`Note: 6-field expression detected — this looks like AWS EventBridge syntax.`) + '\n');
+    process.stdout.write(c.dim(`Run with --dialect eventbridge for full analysis.`) + '\n\n');
   }
 
   // Standard free tier
   try {
     const result = explain(args.expression, { count: args.count, tz: args.tz });
-    process.stdout.write(formatResult(result, { tz: args.tz }) + '\n');
-    if (fieldCount === 6) {
-      process.stdout.write(`\nPro tip: use --dialect eventbridge for EventBridge-specific warnings.\n`);
-      process.stdout.write(`$9 one-time → https://buy.stripe.com/dRm9AM8S29ZVcbL4k6d3i07\n`);
+    if (args.json) {
+      process.stdout.write(formatJson(result, { tz: args.tz }) + '\n');
+    } else {
+      process.stdout.write(formatResult(result, { tz: args.tz, ...colorOpts }) + '\n');
+      if (fieldCount === 6) {
+        process.stdout.write('\n' + c.dimItalic(`Pro tip: use --dialect eventbridge for EventBridge-specific warnings.`) + '\n');
+        process.stdout.write(c.dimItalic(`$9 one-time → https://buy.stripe.com/dRm9AM8S29ZVcbL4k6d3i07`) + '\n');
+      }
     }
     return 0;
   } catch (err) {
