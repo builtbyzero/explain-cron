@@ -154,11 +154,19 @@ async function main(argv) {
   }
 }
 
-const invokedDirectly =
-  typeof process !== 'undefined' &&
-  Array.isArray(process.argv) &&
-  process.argv[1] &&
-  /cli\.js$/.test(process.argv[1]);
+import { fileURLToPath } from 'node:url';
+import { realpathSync } from 'node:fs';
+
+const invokedDirectly = (() => {
+  if (typeof process === 'undefined' || !Array.isArray(process.argv) || !process.argv[1]) return false;
+  try {
+    const entry = realpathSync(process.argv[1]);
+    const self = realpathSync(fileURLToPath(import.meta.url));
+    return entry === self;
+  } catch {
+    return /cli\.js$/.test(process.argv[1]);
+  }
+})();
 
 if (invokedDirectly) {
   main(process.argv.slice(2)).then(code => process.exit(code ?? 0));

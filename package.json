@@ -1,6 +1,6 @@
 {
   "name": "cron-plain",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Explain any cron expression in plain English. Show the next 10 run times.",
   "keywords": [
     "cron",
